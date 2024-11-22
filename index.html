@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ball Drop Game</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .game-container {
+            position: relative;
+            width: 650px;
+            height: 400px;
+            background-color: #fff;
+            border: 2px solid #ccc;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            overflow: hidden;
+        }
+        .ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: red;
+            border-radius: 50%;
+        }
+        .obstacle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: black;
+            border-radius: 50%;
+        }
+        .box-container {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+        }
+        .box {
+            width: 50px;
+            height: 50px;
+            background-color: lightblue;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            border: 1px solid #999;
+        }
+        .drop-line {
+            position: absolute;
+            top: 15%;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: blue;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ball Drop Game</h1>
+    <div class="game-container" id="gameContainer">
+        <div class="drop-line"></div>
+        <div class="box-container">
+            <div class="box">1</div>
+            <div class="box">0</div>
+            <div class="box">0</div>
+            <div class="box">2</div>
+            <div class="box">0</div>
+            <div class="box">0</div>
+            <div class="box">5</div>
+            <div class="box">0</div>
+            <div class="box">0</div>
+            <div class="box">2</div>
+            <div class="box">0</div>
+            <div class="box">0</div>
+            <div class="box">1</div>
+        </div>
+    </div>
+    <p id="result"></p>
+    <script>
+        const gameContainer = document.getElementById('gameContainer');
+        const result = document.getElementById('result');
+        const boxes = document.querySelectorAll('.box');
+        let ballExists = false;
+
+        // 장애물 추가
+        const obstacleRows = 5; // 장애물 행 개수
+        const obstacleSpacing = 50; // 장애물 간의 세로 간격
+        const obstacles = [];
+
+        // 장애물 생성
+        for (let row = 0; row < obstacleRows; row++) {
+            const offsetX = row % 2 === 0 ? 30 : 70;
+            let numObstacles = 10; // 기본 장애물 수는 10개
+
+            if (row === 1 || row === 3) {
+                numObstacles = 11; // 2번 줄(1번 index)와 4번 줄(3번 index)의 장애물 수는 11개
+            }
+            if (row === 2) {
+                numObstacles = 11; // 3번 줄(2번 index)의 장애물 수를 11개로 설정
+            }
+            if (row === 0 || row === 4) {
+                numObstacles = 11; // 1번 줄(0번 index)와 5번 줄(4번 index)의 장애물 수를 11개로 설정
+            }
+
+            for (let i = 0; i < numObstacles; i++) {
+                const obstacleX = offsetX + i * 60;
+                const obstacleY = row * obstacleSpacing + 120; // 장애물 시작 위치 조정
+
+                const obstacle = document.createElement('div');
+                obstacle.classList.add('obstacle');
+                obstacle.style.left = `${obstacleX}px`;
+                obstacle.style.top = `${obstacleY}px`;
+
+                gameContainer.appendChild(obstacle);
+                obstacles.push({ element: obstacle, x: obstacleX, y: obstacleY, row: row });
+            }
+        }
+
+        // 장애물 움직임
+        function moveObstacles() {
+            obstacles.forEach((obstacle) => {
+                if (obstacle.row === 1 || obstacle.row === 3) { 
+                    // 2번 줄(1번 index)와 4번 줄(3번 index)은 왼쪽으로 움직임
+                    let currentX = parseFloat(obstacle.element.style.left);
+                    currentX -= 1; // 속도: 1px씩 왼쪽으로 이동
+
+                    // 화면을 벗어나면 오른쪽 끝으로 다시 나타남
+                    if (currentX + obstacle.element.offsetWidth < 0) {
+                        currentX = gameContainer.offsetWidth;
+                    }
+
+                    obstacle.element.style.left = `${currentX}px`;
+                } else if (obstacle.row === 2) { 
+                    // 3번 줄(2번 index)은 오른쪽으로 움직임
+                    let currentX = parseFloat(obstacle.element.style.left);
+                    currentX += 1; // 속도: 1px씩 오른쪽으로 이동
+
+                    // 화면을 벗어나면 왼쪽 끝으로 다시 나타남
+                    if (currentX > gameContainer.offsetWidth) {
+                        currentX = -obstacle.element.offsetWidth;
+                    }
+
+                    obstacle.element.style.left = `${currentX}px`;
+                } else if (obstacle.row === 0 || obstacle.row === 4) {
+                    // 1번 줄(0번 index)와 5번 줄(4번 index)은 오른쪽으로 움직임
+                    let currentX = parseFloat(obstacle.element.style.left);
+                    currentX += 1; // 속도: 1px씩 오른쪽으로 이동
+
+                    // 화면을 벗어나면 왼쪽 끝으로 다시 나타남
+                    if (currentX > gameContainer.offsetWidth) {
+                        currentX = -obstacle.element.offsetWidth;
+                    }
+
+                    obstacle.element.style.left = `${currentX}px`;
+                }
+            });
+
+            requestAnimationFrame(moveObstacles);
+        }
+
+        moveObstacles();
+
+        // 공 클릭해서 시작
+        gameContainer.addEventListener('click', (e) => {
+            if (ballExists) {
+                result.textContent = "Wait for the ball to finish!";
+                return;
+            }
+
+            const containerRect = gameContainer.getBoundingClientRect();
+            const clickX = e.clientX - containerRect.left;
+            const clickY = e.clientY - containerRect.top;
+
+            const dropLineY = gameContainer.offsetHeight * 0.15;
+
+            if (clickY > dropLineY) {
+                result.textContent = "Click above the blue line!";
+                return;
+            }
+
+            ballExists = true;
+            const ball = document.createElement('div');
+            ball.classList.add('ball');
+            gameContainer.appendChild(ball);
+
+            ball.style.left = `${Math.max(0, Math.min(clickX - ball.offsetWidth / 2, gameContainer.offsetWidth - ball.offsetWidth))}px`;
+            ball.style.top = `${clickY}px`;
+
+            dropBall(ball);
+        });
+
+        function dropBall(ball) {
+            let top = parseFloat(ball.style.top) || 0;
+            let left = parseFloat(ball.style.left) || 0;
+            const targetHeight = gameContainer.offsetHeight - boxes[0].offsetHeight - ball.offsetHeight;
+            let velocityX = 2;
+            let velocityY = 5;
+            const gravity = 0.3;
+            const bounceFactor = 0.8;
+
+            let interval = setInterval(() => {
+                velocityY += gravity;
+                top += velocityY;
+                left += velocityX;
+
+                if (left <= 0 || left + ball.offsetWidth >= gameContainer.offsetWidth) {
+                    velocityX = -velocityX * bounceFactor;
+                }
+
+                ball.style.top = `${top}px`;
+                ball.style.left = `${left}px`;
+
+                // 충돌 감지 (장애물과의 충돌)
+                for (const obstacle of obstacles) {
+                    const obstacleRect = obstacle.element.getBoundingClientRect();
+                    const ballRect = ball.getBoundingClientRect();
+
+                    const buffer = 4; // 충돌 범위
+                    if (
+                        ballRect.left < obstacleRect.right - buffer &&
+                        ballRect.right > obstacleRect.left + buffer &&
+                        ballRect.top < obstacleRect.bottom - buffer &&
+                        ballRect.bottom > obstacleRect.top + buffer
+                    ) {
+                        const overlapX = Math.min(obstacleRect.right - ballRect.left, ballRect.right - obstacleRect.left);
+                        const overlapY = Math.min(obstacleRect.bottom - ballRect.top, ballRect.bottom - obstacleRect.top);
+
+                        if (overlapX < overlapY) {
+                            velocityX = -velocityX * bounceFactor;
+                            left += velocityX > 0 ? overlapX : -overlapX;
+                        } else {
+                            velocityY = -velocityY * bounceFactor;
+                            top += velocityY > 0 ? overlapY : -overlapY;
+                        }
+                    }
+                }
+
+                if (top >= targetHeight) {
+                    clearInterval(interval);
+
+                    const ballCenterX = parseFloat(ball.style.left) + ball.offsetWidth / 2;
+                    const hitBox = [...boxes].find((box) => {
+                        const boxRect = box.getBoundingClientRect();
+                        const boxLeft = boxRect.left - gameContainer.getBoundingClientRect().left;
+                        return ballCenterX >= boxLeft && ballCenterX <= boxLeft + box.offsetWidth;
+                    });
+
+                    const multiplier = hitBox ? parseFloat(hitBox.textContent) : 0;
+                    result.textContent = `You hit a ${multiplier}x box!`;
+
+                    ball.remove();
+                    ballExists = false;
+                }
+            }, 20);
+        }
+    </script>
+</body>
+</html>
